@@ -7,18 +7,18 @@ assignees: davevancauwenberghe
 ---
 
 **Bot version and deployment**
-For example: 1.4.0, Coolify Dockerfile deployment, Node 24.
+Include the bot version, deployment method and Node.js version.
 
 **Command or control**
-Include the slash command/subcommand or button label. Remove personal data from inputs.
+Include the slash command or menu label. Remove personal data from inputs.
 
 **Steps to reproduce**
 
-1. Run the command or press the button.
+1. Run the command or select the menu item.
 2. Describe what happened.
 
 **Expected and actual behavior**
 Describe both. Add a screenshot of the embed when useful.
 
 **Safe diagnostics**
-Include the relevant event name and error/status code from runtime logs. Do not include tokens, environment dumps, private AI prompts or giveaway files.
+Include the relevant event name and error or status code from runtime logs. Redact tokens and personal data.
