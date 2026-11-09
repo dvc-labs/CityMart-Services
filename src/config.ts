@@ -1,8 +1,5 @@
-import { resolve } from 'node:path';
-import { IANAZone } from 'luxon';
-
-export const VERSION = '1.4.1';
-export const isSnowflake = (value: string) => /^[1-9]\d{16,19}$/.test(value);
+export const VERSION = '1.4.3';
+const isSnowflake = (value: string) => /^[1-9]\d{16,19}$/.test(value);
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   const required = (name: string) => {
@@ -10,82 +7,32 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     if (!value) throw new Error(`Missing ${name}.`);
     return value;
   };
-  const id = (name: string, fallback = '') => {
-    const value = env[name]?.trim() || fallback;
+  const id = (name: string) => {
+    const value = env[name]?.trim() || '';
     if (value && !isSnowflake(value)) throw new Error(`${name} must be a Discord ID.`);
     return value;
   };
   const port = Number(env.PORT || 8080);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT.');
-  const timeZone = env.TIME_ZONE?.trim() || 'Europe/Brussels';
-  if (!IANAZone.isValidZone(timeZone)) throw new Error('Invalid TIME_ZONE.');
-  const workerUrl = env.WORKER_URL?.trim() || '';
-  if (workerUrl) {
-    let url: URL;
-    try {
-      url = new URL(workerUrl);
-    } catch {
-      throw new Error('WORKER_URL must be a valid HTTPS URL.');
-    }
-    if (url.protocol !== 'https:' || url.username || url.password)
-      throw new Error('WORKER_URL must use HTTPS without credentials in the URL.');
-  }
   const groupId = env.ROBLOX_GROUP_ID?.trim() || '36060455';
   if (!/^[1-9]\d{0,14}$/.test(groupId) || !Number.isSafeInteger(Number(groupId)))
     throw new Error('Invalid ROBLOX_GROUP_ID.');
-  const citycraftStatusHost = env.CITYCRAFT_STATUS_HOST?.trim() || '157.173.101.60';
-  if (!/^[a-zA-Z0-9.:-]{1,253}$/.test(citycraftStatusHost))
-    throw new Error('Invalid CITYCRAFT_STATUS_HOST.');
-  const citycraftStatusPort = Number(env.CITYCRAFT_STATUS_PORT || 25565);
-  if (
-    !Number.isInteger(citycraftStatusPort) ||
-    citycraftStatusPort < 1 ||
-    citycraftStatusPort > 65535
-  )
-    throw new Error('Invalid CITYCRAFT_STATUS_PORT.');
   const guildId = id('GUILD_ID');
   if (!guildId) throw new Error('Missing GUILD_ID.');
   const labGuildId = id('LAB_GUILD_ID');
   if (labGuildId === guildId) throw new Error('LAB_GUILD_ID must differ from GUILD_ID.');
-  const labSupportChannelId = id('LAB_SUPPORT_CHANNEL_ID');
-  const labMinRoleId = id('LAB_GIVEAWAY_MIN_ROLE_ID');
-  if (!labGuildId && (labSupportChannelId || labMinRoleId))
-    throw new Error('LAB_GUILD_ID is required when lab channel or role settings are configured.');
   return {
     token: required('DISCORD_TOKEN'),
     clientId: id('CLIENT_ID'),
     guildId,
-    labGuildId,
     guildIds: labGuildId ? [guildId, labGuildId] : [guildId],
-    labSupportChannelId,
-    labMinRoleId,
     port,
-    timeZone,
-    dataDir: resolve(env.DATA_DIR || '/data'),
-    workerUrl,
-    hallaiApiKey: env.HALLAI_API_KEY?.trim() || '',
     groupId,
-    supportChannelId: id('SUPPORT_CHANNEL_ID'),
     generalChannelId: id('GENERAL_CHANNEL_ID'),
     commandsChannelId: id('COMMANDS_CHANNEL_ID'),
-    minRoleId: id('GIVEAWAY_MIN_ROLE_ID'),
-    citycraftOwnerId: id('CITYCRAFT_OWNER_USER_ID', '651525636351066182'),
-    citycraftAddress: env.CITYCRAFT_ADDRESS?.trim() || 'citycraft.davevancauwenberghe.be',
-    citycraftStatusHost,
-    citycraftStatusPort,
-    easyposToken: env.EASYPOS_TOKEN?.trim() || '',
     userAgent:
       env.USER_AGENT?.trim() ||
-      `CityMart-Services/${VERSION} (+https://github.com/davevancauwenberghe/CityMart-Services)`,
+      `CityMart-Services/${VERSION} (+https://github.com/dvc-labs/CityMart-Services)`,
   };
 }
 export type Config = ReturnType<typeof readConfig>;
-
-/** Channel/role IDs belong to one server; never reuse production IDs in labs. */
-export function guildSettings(config: Config, guildId: string) {
-  if (guildId === config.guildId)
-    return { supportChannelId: config.supportChannelId, minRoleId: config.minRoleId };
-  if (config.labGuildId && guildId === config.labGuildId)
-    return { supportChannelId: config.labSupportChannelId, minRoleId: config.labMinRoleId };
-  throw new Error('Server is not configured.');
-}

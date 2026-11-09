@@ -13,12 +13,10 @@ export class HttpClient {
     service: string,
     url: string,
     body?: unknown,
-    timeout = this.timeoutMs,
-    headers: Record<string, string> = {},
   ): Promise<{ status: number; text: string }> {
     const controller = new AbortController();
     this.controllers.add(controller);
-    const timer = setTimeout(() => controller.abort(), timeout);
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const response = await fetch(url, {
         method: body === undefined ? 'GET' : 'POST',
@@ -28,7 +26,6 @@ export class HttpClient {
           'User-Agent': this.userAgent,
           Accept: 'application/json, text/plain',
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-          ...headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });

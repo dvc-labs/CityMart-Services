@@ -66,20 +66,6 @@ export class Cache<T> {
   }
 }
 
-export class KeyedLock {
-  private pending = new Map<string, Promise<unknown>>();
-  async run<T>(key: string, task: () => Promise<T>): Promise<T> {
-    const previous = this.pending.get(key) || Promise.resolve();
-    const next = previous.catch(() => undefined).then(task);
-    this.pending.set(key, next);
-    try {
-      return await next;
-    } finally {
-      if (this.pending.get(key) === next) this.pending.delete(key);
-    }
-  }
-}
-
 export const object = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -89,7 +75,7 @@ export const textValue = (value: unknown, fallback = 'Not available') =>
 export const numberValue = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 export function safeLog(event: string, error?: unknown) {
-  // Upstream bodies, URLs, tokens, AI prompts and raw exception messages are never logged.
+  // Upstream bodies, URLs, tokens and raw exception messages are never logged.
   const details =
     error instanceof ServiceError
       ? { service: error.service, status: error.status }

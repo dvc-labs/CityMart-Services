@@ -13,7 +13,6 @@ coverage
 *.tmp
 tests
 README.md
-REVIEW.md
 CHANGELOG.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md

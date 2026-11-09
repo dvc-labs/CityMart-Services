@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import { once } from 'node:events';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { readConfig, VERSION, type Config } from './config.js';
@@ -7,11 +6,6 @@ import { createHealthServer } from './health.js';
 import { registerCommands } from './commands.js';
 import { HttpClient } from './services/http.js';
 import { Roblox } from './services/roblox.js';
-import { Easypos } from './services/easypos.js';
-import { Hallai } from './services/hallai.js';
-import { GiveawayStore } from './giveaways/store.js';
-import { Giveaways } from './giveaways/service.js';
-import { Citycraft } from './handlers/citycraft.js';
 import { updateCommunity, announceReady } from './handlers/info.js';
 import { Router } from './router.js';
 
@@ -30,18 +24,8 @@ const client = new Client({
   rest: { timeout: 15_000, retries: 0 },
 });
 const http = new HttpClient(config.userAgent);
-const hallai = new Hallai(http, config.workerUrl, config.hallaiApiKey);
-if (hallai.configurationWarning) console.warn(hallai.configurationWarning);
-const store = new GiveawayStore(join(config.dataDir, 'giveaways.json'));
 const roblox = new Roblox(http, config);
-const giveaways = new Giveaways(store, client, config);
-const router = new Router(config, client, {
-  roblox,
-  easypos: new Easypos(http, config),
-  hallai,
-  giveaways,
-  citycraft: new Citycraft(client, config),
-});
+const router = new Router(config, client, roblox);
 let initialized = false;
 let stopping = false;
 const health = createHealthServer(() => initialized && client.isReady() && !stopping);
@@ -107,7 +91,6 @@ client.on(Events.Error, (error) => safeLog('discord_error', error));
 client.on(Events.ShardError, (error) => safeLog('discord_gateway_error', error));
 client.on(Events.InteractionCreate, (interaction) => router.handle(interaction));
 try {
-  await store.load();
   health.listen(config.port, '0.0.0.0');
   await once(health, 'listening');
   health.on('error', (error) => {
@@ -132,12 +115,11 @@ try {
   );
   background.add(notice);
   void notice.finally(() => background.delete(notice));
-  repeat(() => giveaways.tick(), 30_000);
   let previous: number | null = null;
   repeat(async () => {
     previous = await updateCommunity(client, config, roblox, previous);
   }, 15 * 60_000);
 } catch (error) {
-  safeLog('startup_failed_check_configuration_storage_and_discord_access', error);
+  safeLog('startup_failed_check_configuration_and_discord_access', error);
   await shutdown(1);
 }
